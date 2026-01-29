@@ -1,0 +1,28 @@
+global pub;
+
+enum Collision {
+    None,
+    Inside,
+    Outside
+}
+
+enum Visibility {
+    None,
+    Visible
+}
+
+struct Entity {
+    Model model,
+    string name,
+    Vector3 position,
+    Collision collision,
+    Visibility visibility,
+    BoundingBox bounds,
+}
+
+fn Entity::new(Model model, string name, Vector3 position, Collision collision, Visibility visibility) {
+    bounds := rl::get_model_bounding_box(model);
+    bounds.min = bounds.min.add(position);
+    bounds.max = bounds.max.add(position);
+    return Entity { model, name, position, collision, visibility, bounds };
+}

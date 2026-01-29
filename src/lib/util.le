@@ -1,0 +1,74 @@
+global pub;
+
+enum Config {
+    Width = 8,
+    Height = 4,
+    Length = 8
+}
+
+let PLAYER_RADIUS = 0.25;
+let EYE_HEIGHT = 1.8;
+
+fn Camera3D::collide(Camera3D *self, Vector3 prev, BoundingBox bounds, Collision collision) {
+    move := self.position.sub(prev);
+
+    test := prev.clone();
+    test.x += move.x;
+    hit_x := false;
+
+    if collision == Collision::Inside {
+        hit_x = test.x - PLAYER_RADIUS < bounds.min.x
+            || test.x + PLAYER_RADIUS > bounds.max.x;
+    } else if collision == Collision::Outside {
+        hit_x = test.x + PLAYER_RADIUS > bounds.min.x
+            && test.x - PLAYER_RADIUS < bounds.max.x
+            && prev.z + PLAYER_RADIUS > bounds.min.z
+            && prev.z - PLAYER_RADIUS < bounds.max.z;
+    } else {
+        $die();
+    }
+
+    if hit_x { move.x = 0; }
+
+    test := prev.clone();
+    test.z += move.z;
+    hit_z := false;
+
+    if collision == Collision::Inside {
+        hit_z = test.z - PLAYER_RADIUS < bounds.min.z
+            || test.z + PLAYER_RADIUS > bounds.max.z;
+    } else if collision == Collision::Outside {
+        hit_z = test.z + PLAYER_RADIUS > bounds.min.z
+            && test.z - PLAYER_RADIUS < bounds.max.z
+            && prev.x + PLAYER_RADIUS > bounds.min.x
+            && prev.x - PLAYER_RADIUS < bounds.max.x;
+    } else {
+        $die();
+    }
+
+    if hit_z { move.z = 0; }
+
+    next := prev.add(move);
+
+    if collision == Collision::Inside {
+        if next.y < EYE_HEIGHT { next.y = EYE_HEIGHT; }
+        if next.y > bounds.max.y - 0.01 { next.y = bounds.max.y - 0.01; }
+    }
+
+    self.position = next;
+}
+
+fn scale_model_uv(Model *model, f32 su, f32 sv) {
+    mesh := &model.meshes[0];
+
+    for i := 0; i < mesh.vertexCount; i += 1 {
+        mesh.texcoords[i * 2 + 0] *= su;
+        mesh.texcoords[i * 2 + 1] *= sv;
+    }
+
+    rl::update_mesh_buffer(mesh, 1, mesh.texcoords, mesh.vertexCount * 2 * #size(f32), 0);
+}
+
+fn load_shader(string fs) {
+    return Box::new(rl::load_shader(nil, fs));
+}

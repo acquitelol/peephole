@@ -1,0 +1,10 @@
+global pub;
+
+//enum FontSizes {
+//    Debug = 20,
+//    Tooltip = 20
+//}
+
+fn rl::draw_text_centered(string text, i32 posY, i32 fontSize, Color color) {
+    rl::draw_text(text, (rl::get_render_width() - rl::measure_text(text, fontSize)) / 2, posY, fontSize, color);
+}

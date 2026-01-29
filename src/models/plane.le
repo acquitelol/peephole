@@ -1,0 +1,22 @@
+global pub;
+
+fn gen_plane(string asset, bool floor) {
+    mesh := rl::gen_mesh_plane(Config::Width * (floor ?: -1), Config::Length, 1, 1);
+    model := rl::load_model_from_mesh(mesh);
+    scale_model_uv(&model, 4, 4);
+
+    albedo := rl::load_texture("assets/{}/color.png".format(asset));
+    normal := rl::load_texture("assets/{}/normal_gl.png".format(asset));
+    roughness := rl::load_texture("assets/{}/roughness.png".format(asset));
+
+    rl::set_texture_wrap(albedo, TextureWrap::TEXTURE_WRAP_REPEAT);
+    rl::set_texture_wrap(normal, TextureWrap::TEXTURE_WRAP_REPEAT);
+    rl::set_texture_wrap(roughness, TextureWrap::TEXTURE_WRAP_REPEAT);
+
+    mat := &model.materials[0];
+	rl::set_material_texture(mat, MaterialMapIndex::MATERIAL_MAP_DIFFUSE, albedo);
+	rl::set_material_texture(mat, MaterialMapIndex::MATERIAL_MAP_NORMAL, normal);
+    rl::set_material_texture(mat, MaterialMapIndex::MATERIAL_MAP_SPECULAR, roughness);
+
+    return model;
+}
