@@ -68,7 +68,3 @@ fn scale_model_uv(Model *model, f32 su, f32 sv) {
 
     rl::update_mesh_buffer(mesh, 1, mesh.texcoords, mesh.vertexCount * 2 * #size(f32), 0);
 }
-
-fn load_shader(string fs) {
-    return Box::new(rl::load_shader(nil, fs));
-}
