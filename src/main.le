@@ -18,9 +18,8 @@ fn main() {
             rl::get_render_height()
         );
 
-    scene := texture_gen();
-    ping := texture_gen();
-    pong := texture_gen();
+    front := texture_gen();
+    back := texture_gen();
 
     shaders := $map(
         $("vignette", &rl::load_shader(nil, "src/shaders/vignette.fs")),
@@ -110,7 +109,7 @@ fn main() {
             shaders["vignette"].set_value("enabled", &debug["vignette"]);
         }
 
-        rl::begin_texture_mode(scene);
+        rl::begin_texture_mode(front);
             rl::clear_background(BLACK);
             rl::begin_mode_3d(camera);
                 for entity in entities {
@@ -121,18 +120,16 @@ fn main() {
             rl::end_mode_3d();
         rl::end_texture_mode();
 
-        src, dst := $(&scene, &ping);
-
         for shader in shaders.values() {
-            rl::begin_texture_mode(*dst);
+            rl::begin_texture_mode(back);
                 rl::clear_background(BLACK);
                 rl::begin_shader_mode(shader);
                     rl::draw_texture_rec(
-                        src.texture,
+                        front.texture,
                         Rectangle {
                             x = 0, y = 0,
-                            width = src.texture.width,
-                            height = -src.texture.height
+                            width = front.texture.width,
+                            height = -front.texture.height
                         },
                         Vector2::zero(),
                         WHITE
@@ -140,7 +137,7 @@ fn main() {
                 rl::end_shader_mode();
             rl::end_texture_mode();
 
-            src, dst = $(dst, src);
+            front, back = $(back, front);
         }
 
         to_sphere := entities
@@ -167,11 +164,11 @@ fn main() {
             rl::clear_background(BLACK);
 
             rl::draw_texture_rec(
-                src.texture,
+                front.texture,
                 Rectangle {
                     x = 0, y = 0,
-                    width = src.texture.width,
-                    height = -src.texture.height
+                    width = front.texture.width,
+                    height = -front.texture.height
                 },
                 Vector2::zero(),
                 WHITE
