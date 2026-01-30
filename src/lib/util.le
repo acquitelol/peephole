@@ -55,7 +55,9 @@ fn Camera3D::collide(Camera3D *self, Vector3 prev, BoundingBox bounds, Collision
         if next.y > bounds.max.y - 0.01 { next.y = bounds.max.y - 0.01; }
     }
 
+    view := self.target.sub(self.position);
     self.position = next;
+    self.target = self.position.add(view);
 }
 
 fn scale_model_uv(Model *model, f32 su, f32 sv) {
