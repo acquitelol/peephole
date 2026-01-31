@@ -60,13 +60,20 @@ fn Camera3D::collide(Camera3D *self, Vector3 prev, BoundingBox bounds, Collision
     self.target = self.position.add(view);
 }
 
-fn scale_model_uv(Model *model, f32 su, f32 sv) {
-    mesh := &model.meshes[0];
+fn scale_model_uv(Model *model, i32[2][] s) {
+    for i := 0; i < model.meshCount; i += 1 {
+        mesh := &model.meshes[i];
+        su, sv := s[i];
 
-    for i := 0; i < mesh.vertexCount; i += 1 {
-        mesh.texcoords[i * 2 + 0] *= su;
-        mesh.texcoords[i * 2 + 1] *= sv;
+        for j := 0; j < mesh.vertexCount; j += 1 {
+            mesh.texcoords[j * 2 + 0] *= su;
+            mesh.texcoords[j * 2 + 1] *= sv;
+        }
+
+        rl::update_mesh_buffer(mesh, 1, mesh.texcoords, mesh.vertexCount * 2 * #size(f32), 0);
     }
+}
 
-    rl::update_mesh_buffer(mesh, 1, mesh.texcoords, mesh.vertexCount * 2 * #size(f32), 0);
+fn lerp(f32 a, f32 b, f32 t) {
+    return a + (b - a) * t;
 }

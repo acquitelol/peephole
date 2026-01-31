@@ -11,18 +11,25 @@ enum Visibility {
     Visible
 }
 
+enum Lighting {
+    Diffuse,
+    Reflective
+}
+
 struct Entity {
     Model model,
     string name,
     Vector3 position,
     Collision collision,
     Visibility visibility,
+    Lighting lighting,
     BoundingBox bounds,
 }
 
-fn Entity::new(Model model, string name, Vector3 position, Collision collision, Visibility visibility) {
+fn Entity::new(Model model, string name, Vector3 position, Collision collision, Visibility visibility, Lighting lighting) {
     bounds := rl::get_model_bounding_box(model);
     bounds.min = bounds.min.add(position);
     bounds.max = bounds.max.add(position);
-    return Entity { model, name, position, collision, visibility, bounds };
+
+    return Entity { model, name, position, collision, visibility, lighting, bounds };
 }

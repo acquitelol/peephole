@@ -1,0 +1,6 @@
+use std/raylib;
+global pub, external;
+
+fn MatrixTranslate(f32 x, f32 y, f32 z) @alias(Matrix::translate) -> Matrix;
+fn MatrixMultiply(Matrix self, Matrix other) @alias(Matrix::multiply) -> Matrix;
+fn MatrixScale(f32 x, f32 y, f32 z) @alias(Matrix::scale) -> Matrix;
