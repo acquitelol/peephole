@@ -26,6 +26,8 @@ fn main() {
         $("crosshair", &rl::load_shader(nil, "src/shaders/crosshair.fs"))
     );
 
+    lighting := rl::load_shader("src/shaders/lighting.vs", "src/shaders/lighting.fs");
+
     camera := Camera3D {
         position = Vector3::new(0, 1.8, 0),
         target = Vector3::new(0, 1.8, -1),
@@ -54,6 +56,12 @@ fn main() {
         )
     ];
 
+    for entity in entities {
+        for i := 0; i < entity.model.materialCount; i += 1 {
+            entity.model.materials[i].shader = lighting;
+        }
+    }
+
     debug := $map(
         $("collisions", true),
         $("vignette", true),
@@ -66,6 +74,8 @@ fn main() {
 
     shaders["vignette"].set_value("enabled", &debug["vignette"]);
     shaders["crosshair"].set_value("aspect", &(#cast(f32, rl::get_render_width()) / rl::get_render_height()));
+    lighting.set_value("shadows", &debug["shadows"]);
+    lighting.set_value("fog", &debug["fog"]);
 
     while !rl::window_should_close() {
         pos := camera.position.clone();
@@ -76,6 +86,7 @@ fn main() {
         );
 
         camera.up = Vector3::new(0, 1, 0); // keeps camera upright
+        lighting.set_value("viewPos", &camera.position);
 
         if debug["collisions"] {
             for entity in entities {
@@ -96,13 +107,26 @@ fn main() {
             shaders["vignette"].set_value("enabled", &debug["vignette"]);
         }
 
+        if rl::is_key_pressed(KeyboardKey::KEY_B) {
+            debug["fog"] = !debug["fog"];
+            lighting.set_value("fog", &debug["fog"]);
+        }
+
+        if rl::is_key_pressed(KeyboardKey::KEY_N) {
+            debug["shadows"] = !debug["shadows"];
+            lighting.set_value("shadows", &debug["shadows"]);
+        }
         rl::begin_texture_mode(front);
             rl::clear_background(BLACK);
             rl::begin_mode_3d(camera);
                 for entity in entities {
-                    if entity.visibility == Visibility::Visible {
-                        rl::draw_model(entity.model, entity.position, 1, WHITE);
-                    }
+                    if entity.visibility != Visibility::Visible { continue; }
+
+                    x, y, z := entity.position;
+                    lighting.set_value("model", &Matrix::translate(x, y, z));
+                    lighting.set_value("specularFactor", &entity.lighting);
+
+                    rl::draw_model(entity.model, entity.position, 1, WHITE);
                 }
             rl::end_mode_3d();
         rl::end_texture_mode();
