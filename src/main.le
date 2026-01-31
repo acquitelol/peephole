@@ -88,9 +88,12 @@ fn main() {
 
     lighting.set_value("shadows", &debug["shadows"]);
     lighting.set_value("fog", &debug["fog"]);
+    swayAmplitude := 0.05;
+    swayFrequency := 8.0;
 
     while !rl::window_should_close() {
         pos := camera.position.clone();
+        time := rl::get_time();
 
         rl::update_camera(
             #cast(Camera *, &camera),
@@ -99,6 +102,18 @@ fn main() {
 
         camera.up = Vector3::new(0, 1, 0); // keeps camera upright
         lighting.set_value("viewPos", &camera.position);
+
+        if camera.position.sub(pos).length() > 0.001 {
+            base := camera.position.clone();
+            sway := Vector3::new(
+                math::sinf(time * swayFrequency) * swayAmplitude,
+                math::cosf(time * swayFrequency * 2.0) * swayAmplitude,
+                0,
+            );
+
+            camera.position.x = lerp(camera.position.x, base.x + sway.x, 0.1);
+            camera.position.y = lerp(camera.position.y, base.y + sway.y, 0.1);
+        }
 
         if debug["collisions"] {
             for entity in entities {
