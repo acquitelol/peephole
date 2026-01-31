@@ -22,8 +22,10 @@ fn main() {
     back := texture_gen();
 
     shaders := $map(
+        $("scan_line", &rl::load_shader(nil, "src/shaders/scan_line.fs")),
+        $("pixelate", &rl::load_shader(nil, "src/shaders/pixelate.fs")),
         $("vignette", &rl::load_shader(nil, "src/shaders/vignette.fs")),
-        $("crosshair", &rl::load_shader(nil, "src/shaders/crosshair.fs"))
+        $("crosshair", &rl::load_shader(nil, "src/shaders/crosshair.fs")),
     );
 
     lighting := rl::load_shader("src/shaders/lighting.vs", "src/shaders/lighting.fs");
@@ -63,9 +65,13 @@ fn main() {
     }
 
     debug := $map(
-        $("collisions", true),
         $("vignette", true),
-        $("free", false)
+        $("fog", true),
+        $("shadows", true),
+        $("pixelate", false),
+        $("collisions", true),
+        $("free", false),
+        $("debug", false)
     );
 
     state := $map(
@@ -74,6 +80,12 @@ fn main() {
 
     shaders["vignette"].set_value("enabled", &debug["vignette"]);
     shaders["crosshair"].set_value("aspect", &(#cast(f32, rl::get_render_width()) / rl::get_render_height()));
+    shaders["pixelate"].set_value("px", &(4.0 / rl::get_render_width()));
+    shaders["pixelate"].set_value("py", &(4.0 / rl::get_render_height()));
+    shaders["pixelate"].set_value("enabled", &debug["pixelate"]);
+    shaders["scan_line"].set_value("intensity", &0.05);
+    shaders["scan_line"].set_value("thickness", &0.001);
+
     lighting.set_value("shadows", &debug["shadows"]);
     lighting.set_value("fog", &debug["fog"]);
 
@@ -101,7 +113,9 @@ fn main() {
         }
 
         if rl::is_key_pressed(KeyboardKey::KEY_R) { debug["collisions"] = !debug["collisions"]; }
+        if rl::is_key_pressed(KeyboardKey::KEY_P) { debug["debug"] = !debug["debug"]; }
         if rl::is_key_pressed(KeyboardKey::KEY_F) { debug["free"] = !debug["free"]; }
+
         if rl::is_key_pressed(KeyboardKey::KEY_V) {
             debug["vignette"] = !debug["vignette"];
             shaders["vignette"].set_value("enabled", &debug["vignette"]);
@@ -116,6 +130,12 @@ fn main() {
             debug["shadows"] = !debug["shadows"];
             lighting.set_value("shadows", &debug["shadows"]);
         }
+
+        if rl::is_key_pressed(KeyboardKey::KEY_M) {
+            debug["pixelate"] = !debug["pixelate"];
+            shaders["pixelate"].set_value("enabled", &debug["pixelate"]);
+        }
+
         rl::begin_texture_mode(front);
             rl::clear_background(BLACK);
             rl::begin_mode_3d(camera);
@@ -189,7 +209,10 @@ fn main() {
                 rl::draw_text_centered("Press [E] to look through peephole", rl::get_render_height() - 150, 20, WHITE);
             }
 
-            rl::draw_text("{}\n\n{}".format(debug, state), 20, rl::get_render_height() - 160, 20, WHITE);
+            if debug["debug"] {
+                rl::draw_text("{}\n\n{}".format(debug, state), 20, rl::get_render_height() - 200, 20, WHITE);
+            }
+
             rl::draw_fps(20, 20);
         rl::end_drawing();
     }
