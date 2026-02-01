@@ -4,3 +4,6 @@ global pub, external;
 fn MatrixTranslate(f32 x, f32 y, f32 z) @alias(Matrix::translate) -> Matrix;
 fn MatrixMultiply(Matrix self, Matrix other) @alias(Matrix::multiply) -> Matrix;
 fn MatrixScale(f32 x, f32 y, f32 z) @alias(Matrix::scale) -> Matrix;
+fn MatrixIdentity() @alias(Matrix::identity) -> Matrix;
+fn MatrixLookAt(Vector3 eye, Vector3 target, Vector3 up) @alias(Matrix::look_at) -> Matrix;
+fn MatrixPerspective(f64 fovY, f64 aspect, f64 nearPlane, f64 farPlane) @alias(Matrix::perspective) -> Matrix;
