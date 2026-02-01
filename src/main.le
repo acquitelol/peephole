@@ -94,8 +94,8 @@ fn main() {
 
     lighting.set_value("shadows", &debug["shadows"]);
     lighting.set_value("fog", &debug["fog"]);
-    swayAmplitude := 0.06;
-    swayFrequency := 6.0;
+    swayAmplitude := 0.05;
+    swayFrequency := 8.0;
 
     while !rl::window_should_close() {
         rl::update_music_stream(footsteps);

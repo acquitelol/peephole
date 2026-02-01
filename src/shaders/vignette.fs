@@ -5,7 +5,7 @@ out vec4 finalColor;
 
 uniform sampler2D texture0;
 uniform bool enabled;
-float strength = 0.7;
+float strength = 0.6;
 float radius = 0.9;
 float softness = 0.9;
 

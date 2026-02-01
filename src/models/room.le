@@ -2,7 +2,7 @@ global pub;
 
 fn gen_room() {
 	model := rl::load_model("assets/cube3.glb");
-    scale_model_uv(&model, [#[2, 4], #[8, 8], #[8, 8]]);
+    scale_model_uv(&model, [#[4, 8], #[16, 16], #[8, 8]]);
 
     textures := #["Plaster-2K", "Plaster2", "Planks"];
 
