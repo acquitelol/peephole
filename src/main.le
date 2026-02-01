@@ -12,6 +12,12 @@ fn main() {
     rl::disable_cursor();
     rl::set_target_fps(60);
 
+    rl::init_audio_device();
+    defer rl::close_audio_device();
+
+    footsteps := rl::load_music_stream("assets/footsteps.mp3");
+    rl::play_music_stream(footsteps);
+
     texture_gen := fn()
         rl::load_render_texture(
             rl::get_render_width(),
@@ -88,10 +94,11 @@ fn main() {
 
     lighting.set_value("shadows", &debug["shadows"]);
     lighting.set_value("fog", &debug["fog"]);
-    swayAmplitude := 0.05;
-    swayFrequency := 8.0;
+    swayAmplitude := 0.06;
+    swayFrequency := 6.0;
 
     while !rl::window_should_close() {
+        rl::update_music_stream(footsteps);
         pos := camera.position.clone();
         time := rl::get_time();
 
@@ -113,6 +120,9 @@ fn main() {
 
             camera.position.x = lerp(camera.position.x, base.x + sway.x, 0.1);
             camera.position.y = lerp(camera.position.y, base.y + sway.y, 0.1);
+            rl::resume_music_stream(footsteps);
+        } else {
+            rl::pause_music_stream(footsteps);
         }
 
         if debug["collisions"] {
@@ -225,10 +235,10 @@ fn main() {
             }
 
             if debug["debug"] {
-                rl::draw_text("{}\n\n{}".format(debug, state), 20, rl::get_render_height() - 200, 20, WHITE);
+                rl::draw_text("{}\n\n{}".format(debug, state), 20, 60, 20, WHITE);
+                rl::draw_fps(20, 20);
             }
 
-            rl::draw_fps(20, 20);
         rl::end_drawing();
     }
 }

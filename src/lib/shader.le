@@ -1,45 +1,27 @@
 global pub;
 
 fn `Shader.set_value.0.10.1`(Shader *self, string name, bool *value) {
-    rl::set_shader_value(
-        self, rl::get_shader_location(self, name),
-        value, ShaderUniformDataType::SHADER_UNIFORM_INT
-    );
+    rl::set_shader_value(self, rl::get_shader_location(self, name), value, ShaderUniformDataType::SHADER_UNIFORM_INT);
 }
 
 fn `Shader.set_value.0.11.1`(Shader *self, string name, i32 *value) {
-    rl::set_shader_value(
-        self, rl::get_shader_location(self, name),
-        value, ShaderUniformDataType::SHADER_UNIFORM_INT
-    );
+    rl::set_shader_value(self, rl::get_shader_location(self, name), value, ShaderUniformDataType::SHADER_UNIFORM_INT);
 }
 
 fn `Shader.set_value.0.13.1`(Shader *self, string name, f32 *value) {
-    rl::set_shader_value(
-        self, rl::get_shader_location(self, name),
-        value, ShaderUniformDataType::SHADER_UNIFORM_FLOAT
-    );
+    rl::set_shader_value(self, rl::get_shader_location(self, name), value, ShaderUniformDataType::SHADER_UNIFORM_FLOAT);
 }
 
 fn `Shader.set_value.0.99.Lighting.11.1`(Shader *self, string name, Lighting *value) {
-    rl::set_shader_value(
-        self, rl::get_shader_location(self, name),
-        value, ShaderUniformDataType::SHADER_UNIFORM_INT
-    );
+    rl::set_shader_value(self, rl::get_shader_location(self, name), value, ShaderUniformDataType::SHADER_UNIFORM_INT);
 }
 
 fn `Shader.set_value.0.Vector2.1`(Shader *self, string name, Vector2 *value) {
-    rl::set_shader_value(
-        self, rl::get_shader_location(self, name),
-        &value.x, ShaderUniformDataType::SHADER_UNIFORM_VEC2
-    );
+    rl::set_shader_value(self, rl::get_shader_location(self, name), &value.x, ShaderUniformDataType::SHADER_UNIFORM_VEC2);
 }
 
 fn `Shader.set_value.0.Vector3.1`(Shader *self, string name, Vector3 *value) {
-    rl::set_shader_value(
-        self, rl::get_shader_location(self, name),
-        &value.x, ShaderUniformDataType::SHADER_UNIFORM_VEC3
-    );
+    rl::set_shader_value(self, rl::get_shader_location(self, name), &value.x, ShaderUniformDataType::SHADER_UNIFORM_VEC3);
 }
 
 fn `Shader.set_value.0.Matrix.1`(Shader *self, string name, Matrix *value) {

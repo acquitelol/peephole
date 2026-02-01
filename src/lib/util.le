@@ -6,7 +6,7 @@ enum Config {
     Length = 8
 }
 
-let PLAYER_RADIUS = 0.25;
+let PLAYER_RADIUS = 0.5;
 let EYE_HEIGHT = 1.8;
 
 fn Camera3D::collide(Camera3D *self, Vector3 prev, BoundingBox bounds, Collision collision) {
