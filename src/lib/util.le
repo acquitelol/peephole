@@ -63,6 +63,7 @@ fn Camera3D::collide(Camera3D *self, Vector3 prev, BoundingBox bounds, Collision
 fn scale_model_uv(Model *model, i32[2][] s) {
     for i := 0; i < model.meshCount; i += 1 {
         mesh := &model.meshes[i];
+        if !mesh.texcoords { continue; }
         su, sv := s[i];
 
         for j := 0; j < mesh.vertexCount; j += 1 {

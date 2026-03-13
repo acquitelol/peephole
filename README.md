@@ -2,6 +2,25 @@
 
 ### A speculative dystopia horror game designed around looking through a peephole.
 
+<div style="overflow-x: auto;">
+  <table>
+    <tr>
+      <td>
+        <div>
+          <img src="assets/example.png" width="400" />
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <div>
+          A sneak peek at the current state of the game
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>
+
 ### ✩ _If you like this project, consider giving it a star!_ ✩
 
 ### ♡ **Why does this exist?**

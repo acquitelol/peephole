@@ -13,6 +13,7 @@ uniform vec3 viewPos;
 
 uniform bool shadows;
 uniform bool fog;
+uniform bool lights;
 
 #define MATERIAL_DIFFUSE 0
 #define MATERIAL_REFLECTIVE 1
@@ -55,16 +56,21 @@ void main() {
     float diffuseAmount = max(dot(normal, lightDir), 0.0);
     vec3 diffuse = vec3(lightFactor * diffuseAmount * albedo * attenuation);
 
-    vec3 viewDir = normalize(viewPos - fragPos);
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float specularFactor = 32;
-    // if (material == MATERIAL_DIFFUSE) specularFactor = 32;
-    // else if (material == MATERIAL_REFLECTIVE) specularFactor = 8;
-    // else specularFactor = 32;
+    // vec3 viewDir = normalize(viewPos - fragPos);
+    // vec3 reflectDir = reflect(-lightDir, normal);
+    // float specularFactor = 32;
+    // // if (material == MATERIAL_DIFFUSE) specularFactor = 32;
+    // // else if (material == MATERIAL_REFLECTIVE) specularFactor = 8;
+    // // else specularFactor = 32;
 
-    float specularAmount = pow(max(dot(viewDir, reflectDir), 0.0), specularFactor);
+    // float specularAmount = pow(max(dot(viewDir, reflectDir), 0.0), specularFactor);
+    // vec3 specular = vec3(lightFactor * specularAmount * attenuation);
+    vec3 viewDir = normalize(viewPos - fragPos);
+    vec3 halfDir = normalize(lightDir + viewDir);
+
+    float specularAmount = pow(max(dot(normal, halfDir), 0.0), 128);
     vec3 specular = vec3(lightFactor * specularAmount * attenuation);
-    vec3 color = ambient + diffuse + specular;
+    vec3 color = lights ? ambient + diffuse + specular : albedo;
 
     float viewDistance = length(fragPos - viewPos);
     float fogFactor = smoothstep(fogStart, fogEnd, viewDistance);
