@@ -1,0 +1,10 @@
+global pub;
+namespace Easing;
+
+fn Easing::inOut(f32 t) {
+    return t * t * (3.0 - 2.0 * t);
+}
+
+fn Easing::linear(f32 t) {
+    return t;
+}

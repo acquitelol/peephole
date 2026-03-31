@@ -1,0 +1,22 @@
+global pub;
+
+struct Timer {
+    f32 time,
+    f32 duration,
+    bool active
+}
+
+fn Timer::update(Timer *self, f32 dt) {
+    if !self.active { return; }
+    self.time += dt;
+    
+    if self.time >= self.duration {
+        self.time = self.duration;
+        self.active = false;
+    }
+}
+
+fn Timer::progress(Timer self) {
+    if self.duration <= 0.0 { return 1.0; }
+    return self.time / self.duration;
+}

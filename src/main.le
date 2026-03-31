@@ -3,9 +3,10 @@ use std/raylib;
 
 use lib/index;
 use models/index;
+use animation/animation;
 
 fn main() {
-    rl::init_window(1920, 1080, "Peephole");
+    rl::init_window(1920, 1080, "dear lover, dear heart, glass heart");
     defer rl::close_window();
 
     rl::toggle_fullscreen();
@@ -19,10 +20,7 @@ fn main() {
     rl::play_music_stream(footsteps);
 
     texture_gen := fn()
-        rl::load_render_texture(
-            rl::get_render_width(),
-            rl::get_render_height()
-        );
+        rl::load_render_texture(rl::get_render_width(), rl::get_render_height());
 
     front := texture_gen();
     back := texture_gen();
@@ -36,43 +34,57 @@ fn main() {
 
     lighting := rl::load_shader("src/shaders/lighting.vs", "src/shaders/lighting.fs");
 
-    //camera := Camera3D {
-    //    position = Vector3::new(0, 1.8, 0),
-    //    target = Vector3::new(0, 1.8, -1),
-    //    up = Vector3::new(0, 1, 0),
-    //    fovy = 70,
-    //    projection = CameraProjection::CAMERA_PERSPECTIVE
-    //};
-
     camera := Camera3D {
-        position = Vector3::new(1.75, 1.85, -2),
-        target = Vector3::new(1.4, 1.75, -3),
+        position = Vector3::new(0, 1.8, -3),
+        target = Vector3::new(0, 1.8, 1),
         up = Vector3::new(0, 1, 0),
         fovy = 70,
         projection = CameraProjection::CAMERA_PERSPECTIVE
     };
-
-    entities := #[
-        Entity::new(
-            gen_room(), "room",
-            Vector3::new(0, Config::Height / 2, 0),
+    
+    entities := $map(#[
+        $("room", Entity::new(
+            gen_room(), Vector3::new(0, Config::Height / 2, 0),
             Collision::Inside, Visibility::Visible, Lighting::Diffuse,
-        ),
+        )),
 
-        Entity::new(
-            rl::load_model("assets/door.glb"), "door",
+        $("door", Entity::new(
+            rl::load_model("assets/door.glb"),
             Vector3::new(0, 0.02, -Config::Length / 2 + 0.02),
             Collision::Outside, Visibility::Visible, Lighting::Diffuse,
-        ),
+        )),
+        
+        $("bed", Entity::new(
+            rl::load_transformed_model(
+                "assets/bed.glb", 
+                Matrix::scale(1.8, 1.5, 1.8)
+                .multiply(Matrix::rotateXYZ(Vector3::new(0, -PI, 0)))
+            ), Vector3::new(2.7, 0.05, 2),
+            Collision::Outside, Visibility::Visible, Lighting::Diffuse
+        )),
+        
+        $("bedside_table", Entity::new(
+            rl::load_transformed_model(
+                "assets/bedside_table.glb",
+                Matrix::scale(0.5, 0.5, 0.5)
+                    .multiply(Matrix::rotateXYZ(Vector3::new(0, -PI, 0)))
+            ), Vector3::new(0.9, 0.05, 3.3),
+            Collision::Outside, Visibility::Visible, Lighting::Diffuse
+        )),
 
-        Entity::new(
-            rl::load_model_from_mesh(rl::gen_mesh_sphere(0.05, 16, 16)), "peephole",
-            Vector3::new(0, 2, -Config::Length / 2 + 0.04),
+        $("light_switch", Entity::new(
+            rl::load_model_from_mesh(rl::gen_mesh_sphere(0.05, 16, 16)),
+            Vector3::new(1, 2, -Config::Length / 2 + 0.04),
             Collision::None, Visibility::None, Lighting::Diffuse,
-        )
+        ))
+    ]);
+    
+    lights := #[
+        $$(Vector3::new(0, 0, 0), Vector3::new(1, 1, 1), 0.2),
+        $$(Vector3::new(0, 3, 0), Vector3::new(0.8, 0.7, 0.8), 1)
     ];
 
-    for entity in entities {
+    for entity in entities.values() {
         for i := 0; i < entity.model.materialCount; i += 1 {
             entity.model.materials[i].shader = lighting;
         }
@@ -83,37 +95,40 @@ fn main() {
         $("fog", true),
         $("shadows", true),
         $("lights", true),
-        $("scan_line", true),
+        $("scan_line", false),
         $("pixelate", false),
         $("collisions", true),
         $("free", false),
         $("debug", false)
     ]);
 
-    state := $map(#[
-        $("looking_at_peephole", false)
-    ]);
+    //state := $map<string, bool>(#[]);
 
     shaders["vignette"].set_value("enabled", &debug["vignette"]);
     shaders["crosshair"].set_value("aspect", &(#cast(f32, rl::get_render_width()) / rl::get_render_height()));
 
-    shaders["pixelate"].set_value("px", &(4.0 / rl::get_render_width()));
-    shaders["pixelate"].set_value("py", &(4.0 / rl::get_render_height()));
+    shaders["pixelate"].set_value("px", &(16.0 / rl::get_render_width()));
+    shaders["pixelate"].set_value("py", &(16.0 / rl::get_render_height()));
     shaders["pixelate"].set_value("enabled", &debug["pixelate"]);
 
     shaders["scan_line"].set_value("enabled", &debug["scan_line"]);
     shaders["scan_line"].set_value("intensity", &0.04);
     shaders["scan_line"].set_value("thickness", &0.02);
 
+    lighting.set_value("lightCount", &#cast(i32, lights.len()));
+    lighting.set_value("lightsEnabled", &debug["lights"]);
     lighting.set_value("shadows", &debug["shadows"]);
-    lighting.set_value("lights", &debug["lights"]);
     lighting.set_value("fog", &debug["fog"]);
     swayAmplitude := 0.05;
     swayFrequency := 8.0;
-
+    
+    brightness := 0.0;
+    Animation::new_delayed(&brightness, 0, 255, 2, 3, Easing::inOut);
+    
     while !rl::window_should_close() {
         rl::update_music_stream(footsteps);
         pos := camera.position.clone();
+        dt := rl::get_frame_time();
         time := rl::get_time();
 
         rl::update_camera(
@@ -123,7 +138,19 @@ fn main() {
 
         camera.up = Vector3::new(0, 1, 0); // keeps camera upright
         lighting.set_value("viewPos", &camera.position);
+        lighting.set_value("lightCount", &#cast(i32, lights.len()));
+        //lights[0] = $$(camera.position.clone(), Vector3::new(1,1,1), 1.0);
         shaders["scan_line"].set_value("time", &#cast(f32, time));
+        
+        for i := 0; i < animations.len(); i += 1 {
+            (&animations[i]).update(dt);
+        }
+        
+        for i := 0; i < lights.len(); i += 1 {
+            lighting.set_value("lights[{}].position".format(i), &lights[i].x);
+            lighting.set_value("lights[{}].color".format(i), &lights[i].y);
+            lighting.set_value("lights[{}].strength".format(i), &lights[i].z);
+        }
 
         if camera.position.sub(pos).length() > 0.001 {
             base := camera.position.clone();
@@ -141,7 +168,7 @@ fn main() {
         }
 
         if debug["collisions"] {
-            for entity in entities {
+            for entity in entities.values() {
                 if entity.collision == Collision::None { continue; }
                 camera.collide(pos, entity.bounds, entity.collision);
             }
@@ -150,6 +177,10 @@ fn main() {
         if rl::is_key_pressed(KeyboardKey::KEY_TAB) {
             if rl::is_cursor_hidden() { rl::enable_cursor(); }
             else { rl::disable_cursor(); }
+        }
+        
+        if rl::is_key_pressed(KeyboardKey::KEY_ENTER) {
+            rl::toggle_fullscreen();
         }
 
         if rl::is_key_pressed(KeyboardKey::KEY_R) { debug["collisions"] = !debug["collisions"]; }
@@ -173,7 +204,7 @@ fn main() {
 
         if rl::is_key_pressed(KeyboardKey::KEY_L) {
             debug["lights"] = !debug["lights"];
-            lighting.set_value("lights", &debug["lights"]);
+            lighting.set_value("lightsEnabled", &debug["lights"]);
         }
 
         if rl::is_key_pressed(KeyboardKey::KEY_M) {
@@ -189,25 +220,14 @@ fn main() {
         rl::begin_texture_mode(front);
             rl::clear_background(BLACK);
             rl::begin_mode_3d(camera);
-                for entity in entities {
+                for entity in entities.values() {
                     if entity.visibility != Visibility::Visible { continue; }
 
                     x, y, z := entity.position;
                     lighting.set_value("model", &Matrix::translate(x, y, z));
                     lighting.set_value("specularFactor", &entity.lighting);
                     
-
                     rl::draw_model(entity.model, entity.position, 1, WHITE);
-                    //if entity.meshUVs.len() > 0 {
-                    //    for i, scale in entity.meshUVs.iter().enumerate() {
-                    //        mesh := entity.model.meshes[i];
-                    //        material := entity.model.materials[i];
-                    //        lighting.set_value("uvScale", &entity.meshUVs[i]);
-                    //        rl::draw_mesh(mesh, material, Matrix::identity());
-                    //    }
-                    //} else {
-                    //    rl::draw_model(entity.model, entity.position, 1, WHITE);
-                    //}
                 }
             rl::end_mode_3d();
         rl::end_texture_mode();
@@ -231,27 +251,7 @@ fn main() {
 
             front, back = $(back, front);
         }
-
-        to_sphere := entities
-            .iter()
-            .find(fn(x) x.name == "peephole")
-            .unwrap()
-            .position
-            .sub(camera.position);
-        distance := to_sphere.length_sq();
-
-        if distance < 4.0 {
-            look_dir := camera.target.sub(camera.position).normalize();
-            dir_to_sphere := to_sphere.normalize();
-            dot := look_dir.dot(dir_to_sphere);
-
-            state["looking_at_peephole"] = dot > 0.995;
-            shaders["crosshair"].set_value("interacting", &state["looking_at_peephole"]);
-        } else {
-            state["looking_at_peephole"] = false;
-            shaders["crosshair"].set_value("interacting", &state["looking_at_peephole"]);
-        }
-
+        
         rl::begin_drawing();
             rl::clear_background(BLACK);
 
@@ -263,15 +263,11 @@ fn main() {
                     height = -front.texture.height
                 },
                 Vector2::zero(),
-                WHITE
+                Color { ..WHITE, a = brightness }
             );
 
-            if state["looking_at_peephole"] {
-                rl::draw_text_centered("Press [E] to look through peephole", rl::get_render_height() - 150, 20, WHITE);
-            }
-
             if debug["debug"] {
-                rl::draw_text("{}\n\n{}\n\n{}".format(debug, state, camera), 20, 60, 20, WHITE);
+                rl::draw_text("{}\n\n{}\n\n{}".format(debug, camera), 20, 60, 20, WHITE);
             }
 
             rl::draw_fps(20, 20);

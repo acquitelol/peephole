@@ -1,3 +1,5 @@
+use std/prelude;
+use std/raylib;
 global pub;
 
 enum Collision {
@@ -18,7 +20,6 @@ enum Lighting {
 
 struct Entity {
     Model model,
-    string name,
     Vector3 position,
     Collision collision,
     Visibility visibility,
@@ -26,10 +27,13 @@ struct Entity {
     BoundingBox bounds,
 }
 
-fn Entity::new(Model model, string name, Vector3 position, Collision collision, Visibility visibility, Lighting lighting) {
+fn Entity::new(Model model, Vector3 position, Collision collision, Visibility visibility, Lighting lighting) {
     bounds := rl::get_model_bounding_box(model);
+    if (bounds.min.x > bounds.max.x) { t := bounds.min.x; bounds.min.x = bounds.max.x; bounds.max.x = t; }
+    if (bounds.min.y > bounds.max.y) { t := bounds.min.y; bounds.min.y = bounds.max.y; bounds.max.y = t; }
+    if (bounds.min.z > bounds.max.z) { t := bounds.min.z; bounds.min.z = bounds.max.z; bounds.max.z = t; }
     bounds.min = bounds.min.add(position);
     bounds.max = bounds.max.add(position);
 
-    return Entity { model, name, position, collision, visibility, lighting, bounds };
+    return Entity { model, position, collision, visibility, lighting, bounds };
 }

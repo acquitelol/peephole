@@ -1,0 +1,65 @@
+use std/prelude;
+
+use easing;
+use timer;
+global pub;
+
+let animations = []Animation;
+
+struct Animation @nofmt {
+    f32 *value,
+    f32 start,
+    f32 end,
+    f32 delay,
+    bool loop,
+    Timer *timer,
+    fn(f32) -> f32 ease,
+}
+
+fn Animation::__fmt__(Animation self, u64 nesting) {
+    return "Animation({}, {}, {}, {}, {})".format(self.value, self.start, self.end, self.delay, self.timer);
+}
+
+fn Animation::new(f32 *value, f32 start, f32 end, f32 duration, fn(f32) -> f32 ease) {
+    self := Animation {
+        value, start, end, ease, delay = 0, loop = false,
+        timer = Box::new(Timer { time = 0, active = true, duration }).to_ptr(),
+    };
+    
+    animations.push(self);
+}
+
+fn Animation::new_delayed(f32 *value, f32 start, f32 end, f32 duration, f32 delay, fn(f32) -> f32 ease) {
+    self := Animation {
+        value, start, end, ease, delay, loop = false,
+        timer = Box::new(Timer { time = 0, active = true, duration }).to_ptr(),
+    };
+    
+    animations.push(self);
+}
+
+fn Animation::new_looped(f32 *value, f32 start, f32 end, f32 duration, fn(f32) -> f32 ease) {
+    self := Animation {
+        value, start, end, ease, delay = 0, loop = true,
+        timer = Box::new(Timer { time = 0, active = true, duration }).to_ptr(),
+    };
+    
+    animations.push(self);
+}
+
+fn Animation::update(Animation *self, f32 dt) {
+    if self.delay > 0 {
+        self.delay -= dt;
+        return;
+    }
+    
+    if self.loop && !self.timer.active {
+        *self.value = self.start;
+        self.timer.time = 0;
+        self.timer.active = true;
+    }
+    
+    self.timer.update(dt);
+    cb := self.ease ?: fn(f32 x) x;
+    *self.value = self.start + (self.end - self.start) * cb(self.timer.progress());
+}

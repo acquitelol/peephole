@@ -1,1 +1,11 @@
+use ../lib/bindings;
+use baseboard;
 use room;
+
+global pub;
+
+fn rl::load_transformed_model(string path, Matrix transform) {
+    model := rl::load_model(path);
+    model.transform = transform;
+    return model;
+}
