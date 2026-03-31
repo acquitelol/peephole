@@ -1,4 +1,6 @@
-#include <raylib.h>
+#include "raylib.h"
+#include "raymath.h"
+#include "rlgl.h"
 #include <stdio.h>
 
 void scale_model_uv(Model *model, int *s) {

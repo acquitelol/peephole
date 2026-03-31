@@ -1,6 +1,7 @@
 use std/prelude;
 use std/raylib;
 
+use bindings;
 use entity;
 global pub;
 
@@ -66,6 +67,27 @@ fn Camera3D::collide(Camera3D *self, Vector3 prev, BoundingBox bounds, Collision
 
 fn lerp(f32 a, f32 b, f32 t) {
     return a + (b - a) * t;
+}
+
+fn rl::load_shadowmap_render_texture(i32 width, i32 height) {
+    target := RenderTexture2D {};
+
+    target.id = rlLoadFramebuffer();
+    target.texture.width = width;
+    target.texture.height = height;
+
+    rlEnableFramebuffer(target.id);
+
+    target.depth.id = rlLoadTextureDepth(width, height, false);
+    target.depth.width = width;
+    target.depth.height = height;
+    target.depth.format = 19; // DEPTH_COMPONENT_24BIT?
+    target.depth.mipmaps = 1;
+
+    rlFramebufferAttach(target.id, target.depth.id, RL::ATTACHMENT_DEPTH, RL::ATTACHMENT_TEXTURE2D, 0);
+    rlDisableFramebuffer();
+
+    return target;
 }
 
 external fn scale_model_uv(Model *model, i32 **s);

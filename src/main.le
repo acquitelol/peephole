@@ -6,7 +6,7 @@ use models/index;
 use animation/animation;
 
 fn main() {
-    rl::init_window(1920, 1080, "dear lover, dear heart, glass heart");
+    rl::init_window(0, 0, "dear lover, dear heart, glass heart");
     defer rl::close_window();
     
     rl::set_config_flags(ConfigFlags::FLAG_MSAA_4X_HINT);
@@ -34,6 +34,7 @@ fn main() {
     ]);
 
     lighting := rl::load_shader("src/shaders/lighting.vs", "src/shaders/lighting.fs");
+    depth_shader := rl::load_shader("src/shaders/depth.vs", "src/shaders/depth.fs");
 
     camera := Camera3D {
         position = Vector3::new(0, 1.8, -3),
@@ -52,7 +53,7 @@ fn main() {
         $("door", Entity::new(
             rl::load_transformed_model(
                 "assets/door4.glb",
-                Matrix::scale(1.1, 1.1, 1.1)
+                Matrix::scale(1.25, 1.25, 1.25)
                     .multiply(Matrix::rotateXYZ(Vector3::new(0, -PI, 0)))),
             Vector3::new(0, 0.02, -Config::Length / 2),
             Collision::Outside, Visibility::Visible, Lighting::Diffuse,
@@ -85,12 +86,15 @@ fn main() {
     
     lights := #[
         Light {
-            type = LightType::Point,
+            type = LightType::Directional,
             enabled = true,
+            dir = Vector3::new(0.35, -1, -0.35).normalize(),
             position = Vector3::new(0, Config::Height - 0.8, 0),
             target = Vector3::zero(),
-            color = Vector3::new(1, 1, 1),
-            intensity = 5
+            color = Vector3::new(0.8, 0.7, 0.8),
+            intensity = 3,
+            depthMap = rl::load_shadowmap_render_texture(1024, 1024),
+            mat = Matrix::identity()
         }
     ];
 
@@ -129,7 +133,7 @@ fn main() {
     lighting.set_value("lightsEnabled", &debug["lights"]);
     lighting.set_value("shadows", &debug["shadows"]);
     lighting.set_value("fog", &debug["fog"]);
-    swayAmplitude := 0.05;
+    swayAmplitude := 0.12;
     swayFrequency := 8.0;
     
     brightness := 0.0;
@@ -149,19 +153,69 @@ fn main() {
         camera.up = Vector3::new(0, 1, 0); // keeps camera upright
         lighting.set_value("viewPos", &camera.position);
         lighting.set_value("lightCount", &#cast(i32, lights.len()));
+        //lights[0].dir = camera.position.clone();
         shaders["scan_line"].set_value("time", &#cast(f32, time));
         
         for i := 0; i < animations.len(); i += 1 {
             (&animations[i]).update(dt);
         }
         
+        //for entity in entities.values() {
+        //    for i := 0; i < entity.model.materialCount; i += 1 {
+        //        entity.model.materials[i].shader = depth_shader;
+        //    }
+        //}
+        
         for i := 0; i < lights.len(); i += 1 {
+            light_cam := Camera3D {
+                position = lights[i].dir.scale(-15),
+                target = lights[i].target,
+                up = Vector3::new(0, 1, 0),
+                fovy = 20,
+                projection = CameraProjection::CAMERA_ORTHOGRAPHIC,
+            };
+            
+            lightView := lightProj := Matrix::identity();
+            
+            rl::begin_texture_mode(lights[i].depthMap);
+                rl::clear_background(WHITE);
+                rl::begin_mode_3d(light_cam);
+                    lightView = rlGetMatrixModelview();
+                    lightProj = rlGetMatrixProjection();
+                    for entity in entities.values() {
+                        if entity.visibility != Visibility::Visible { continue; }
+                        rl::draw_model(entity.model, entity.position, 1, WHITE);
+                    }
+                rl::end_mode_3d();
+            rl::end_texture_mode();
+            
+            lightSpaceMatrix := lightView.multiply(lightProj);
+
             lighting.set_value("lights[{}].type".format(i), &(+lights[i].type));
+            lighting.set_value("lights[{}].dir".format(i), &lights[i].dir);
             lighting.set_value("lights[{}].position".format(i), &lights[i].position);
             lighting.set_value("lights[{}].target".format(i), &lights[i].target);
             lighting.set_value("lights[{}].color".format(i), &lights[i].color);
             lighting.set_value("lights[{}].strength".format(i), &lights[i].intensity);
+            lighting.set_value("lights[{}].depthMap".format(i), &lights[i].depthMap.depth);
+            lighting.set_value("lights[{}].mat".format(i), &lightSpaceMatrix);
+            //lighting.set_value("lights[{}].shadowMap".format(i), &lights[i].depthMap.depth);
+
+            rlEnableShader(lighting.id);
+            rlActiveTextureSlot(5 + i);
+            rlEnableTexture(lights[i].depthMap.depth.id);
+
+            rlSetUniform(
+                rl::get_shader_location(lighting, "lights[{}].shadowMap".format(i)), 
+                &(5 + i), ShaderUniformDataType::SHADER_UNIFORM_INT, 1
+            );
         }
+        
+        //for entity in entities.values() {
+        //    for i := 0; i < entity.model.materialCount; i += 1 {
+        //        entity.model.materials[i].shader = lighting;
+        //    }
+        //}
 
         if camera.position.sub(pos).length() > 0.001 {
             base := camera.position.clone();
@@ -230,6 +284,7 @@ fn main() {
 
         rl::begin_texture_mode(front);
             rl::clear_background(BLACK);
+            
             rl::begin_mode_3d(camera);
                 for entity in entities.values() {
                     if entity.visibility != Visibility::Visible { continue; }
@@ -266,6 +321,18 @@ fn main() {
         rl::begin_drawing();
             rl::clear_background(BLACK);
 
+            //rl::draw_texture_rec(
+            //    lights[0].depthMap.depth,
+            //    Rectangle {
+            //        x = 0, y = 0,
+            //        width = lights[0].depthMap.depth.width,
+            //        height = -lights[0].depthMap.depth.height
+            //    },
+            //    Vector2::zero(),
+            //    Color { ..WHITE, a = brightness }
+            //);
+            
+            
             rl::draw_texture_rec(
                 front.texture,
                 Rectangle {

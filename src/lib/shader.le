@@ -1,4 +1,8 @@
+use std/prelude;
+use std/raylib;
 global pub;
+
+use util;
 
 fn `Shader.set_value.0.10.1`(Shader *self, string name, bool *value) {
     rl::set_shader_value(self, rl::get_shader_location(self, name), value, ShaderUniformDataType::SHADER_UNIFORM_INT);

@@ -31,10 +31,13 @@ uniform int material;
 
 struct Light {
     int type;
+    vec3 dir;
     vec3 position;
     vec3 target;
     vec3 color;
     float strength;
+    mat4 mat;
+    sampler2D shadowMap;
 };
 
 uniform int lightCount;
@@ -46,7 +49,7 @@ float fogEnd = 10;
 float shadowStart = 8;
 float shadowEnd = 16;
 
-float lightRange = 50;
+float lightRange = 100;
 float lightFactor = 0.5;
 
 float metallicValue = 0.5;
@@ -74,6 +77,13 @@ float GeomSmith(float nDotV, float nDotL, float roughness)
     float ggx1 = nDotV / (nDotV * ik + k);
     float ggx2 = nDotL / (nDotL * ik + k);
     return ggx1 * ggx2;
+}
+
+float GeometricRoughness(vec3 normal) {
+    vec3 dNdx = dFdx(normal);
+    vec3 dNdy = dFdy(normal);
+    float variance = max(dot(dNdx, dNdx), dot(dNdy, dNdy));
+    return clamp(sqrt(variance) * 2.0, 0.0, 1.0);
 }
 
 void main() {
@@ -106,6 +116,9 @@ void main() {
     // finalColor = vec4(normal, 1);
     // return;
 
+    float geoRoughness = GeometricRoughness(normal);
+    roughness = clamp(sqrt(roughness * roughness + geoRoughness * geoRoughness), 0.04, 1.0);
+
     vec3 V = normalize(viewPos - fragPos);
     vec3 baseRefl = mix(vec3(0.04), albedo, metallic);
     vec3 lightAccum = vec3(0.0);
@@ -114,16 +127,39 @@ void main() {
     {
         float dist = length(lights[i].position - fragPos);
 
+        float attenuation = 1.0;
         vec3 L;
-        float attenuation;
 
         if (lights[i].type == LIGHT_DIRECTIONAL) {
-            L = normalize(lights[i].position - lights[i].target);
-            attenuation = 1.0;
+            L = -lights[i].dir;
         } else {
             L = normalize(lights[i].position - fragPos);
-            attenuation = 1.0 - smoothstep(0.0, 1.0, dist / lightRange);
+            attenuation -= smoothstep(0.0, 1.0, dist / lightRange);
         }
+
+        vec4 fragPosLightSpace = lights[i].mat * vec4(fragPos, 1.0);
+        fragPosLightSpace.xyz /= fragPosLightSpace.w;
+        fragPosLightSpace.xyz = fragPosLightSpace.xyz * 0.5 + 0.5;
+        // finalColor = vec4(fragPosLightSpace.xy, 0, 1);
+        // return;
+        float closestDepth = texture(lights[i].shadowMap, fragPosLightSpace.xy).r;
+        float currentDepth = fragPosLightSpace.z;
+        // finalColor = texture(shadowMap, fragPosLightSpace.xy);
+        // return;
+
+        float shadow = 0.0;
+        float bias = max(0.0002 * (1.0 - dot(normal, L)), 0.00002) + 0.00001;
+        // if (currentDepth - bias > closestDepth) shadow = 1.0;
+        int samples = 128;
+        for (int x = -5; x <= 5; x++)
+            for (int y = -5; y <= 5; y++) {
+                vec2 offset = vec2(x, y) * 1.0 / 1024.0;
+                float closestDepth = texture(lights[i].shadowMap, fragPosLightSpace.xy + offset).r;
+                shadow += (currentDepth - bias > closestDepth) ? 1.0 : 0.0;
+            }
+        shadow /= 121.0; // average
+        // finalColor = vec4(shadow, 0, 0, 1);
+        // return;
 
         vec3 H = normalize(V + L);
         vec3 radiance = lights[i].color * lights[i].strength * attenuation;
@@ -142,7 +178,7 @@ void main() {
         vec3 kD = vec3(1.0) - F;
         kD *= 1.0 - metallic; // metals have no diffuse
 
-        lightAccum += (kD * albedo / PI + spec) * radiance * nDotL;
+        lightAccum += (kD * albedo / PI + spec) * radiance * nDotL * (1.0 - shadow);
     }
 
     vec3 ambientFinal = albedo * ao * 0.5;
@@ -159,4 +195,5 @@ void main() {
     vec3 foggedColor = mix(shadowedColor, atmosphereColor, fog ? fogFactor : 0.0);
 
     finalColor = vec4(foggedColor, 1.0);
+    finalColor = pow(finalColor, vec4(1.0 / 2.2));
 }

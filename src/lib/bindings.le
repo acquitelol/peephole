@@ -2,6 +2,11 @@ use std/prelude;
 use std/raylib;
 global pub, external;
 
+enum RL {
+    ATTACHMENT_DEPTH = 100,
+    ATTACHMENT_TEXTURE2D = 100
+}
+
 fn MatrixTranslate(f32 x, f32 y, f32 z) @alias(Matrix::translate) -> Matrix;
 fn MatrixMultiply(Matrix self, Matrix other) @alias(Matrix::multiply) -> Matrix;
 fn MatrixScale(f32 x, f32 y, f32 z) @alias(Matrix::scale) -> Matrix;
@@ -10,3 +15,16 @@ fn MatrixRotate(Vector3 axis, f32 angle) @alias(Matrix::rotate) -> Matrix;
 fn MatrixIdentity() @alias(Matrix::identity) -> Matrix;
 fn MatrixLookAt(Vector3 eye, Vector3 target, Vector3 up) @alias(Matrix::look_at) -> Matrix;
 fn MatrixPerspective(f64 fovY, f64 aspect, f64 nearPlane, f64 farPlane) @alias(Matrix::perspective) -> Matrix;
+fn MatrixOrtho(f64 a, f64 b, f64 c, f64 d, f64 e, f64 f) @alias(Matrix::ortho) -> Matrix;
+
+fn rlLoadFramebuffer() -> u32;
+fn rlEnableFramebuffer(u32 id);
+fn rlLoadTextureDepth(i32 width, i32 height, bool useRenderBuffer) -> u32;
+fn rlFramebufferAttach(u32 id, u32 texId, i32 attachType, i32 texType, i32 mipLevel);
+fn rlDisableFramebuffer();
+fn rlGetMatrixModelview() -> Matrix;
+fn rlGetMatrixProjection() -> Matrix;
+fn rlEnableShader(u32 id);
+fn rlEnableTexture(u32 id);
+fn rlActiveTextureSlot(i32 id);
+fn rlSetUniform(i32 locIndex, void *value, i32 uniformType, i32 count);

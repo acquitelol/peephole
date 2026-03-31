@@ -11,8 +11,11 @@ enum LightType {
 struct Light {
     LightType type,
     bool enabled,
+    Vector3 dir,
     Vector3 position,
     Vector3 target,
     Vector3 color,
-    f32 intensity
+    f32 intensity,
+    RenderTexture2D depthMap,
+    Matrix mat
 }
