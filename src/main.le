@@ -8,7 +8,8 @@ use animation/animation;
 fn main() {
     rl::init_window(1920, 1080, "dear lover, dear heart, glass heart");
     defer rl::close_window();
-
+    
+    rl::set_config_flags(ConfigFlags::FLAG_MSAA_4X_HINT);
     rl::toggle_fullscreen();
     rl::disable_cursor();
     rl::set_target_fps(60);
@@ -49,17 +50,20 @@ fn main() {
         )),
 
         $("door", Entity::new(
-            rl::load_model("assets/door.glb"),
-            Vector3::new(0, 0.02, -Config::Length / 2 + 0.02),
+            rl::load_transformed_model(
+                "assets/door4.glb",
+                Matrix::scale(1.1, 1.1, 1.1)
+                    .multiply(Matrix::rotateXYZ(Vector3::new(0, -PI, 0)))),
+            Vector3::new(0, 0.02, -Config::Length / 2),
             Collision::Outside, Visibility::Visible, Lighting::Diffuse,
         )),
         
         $("bed", Entity::new(
             rl::load_transformed_model(
-                "assets/bed.glb", 
-                Matrix::scale(1.8, 1.5, 1.8)
-                .multiply(Matrix::rotateXYZ(Vector3::new(0, -PI, 0)))
-            ), Vector3::new(2.7, 0.05, 2),
+                "assets/bed4.glb", 
+                Matrix::scale(2, 1.5, 1.5)
+                    .multiply(Matrix::rotateXYZ(Vector3::new(0, -PI, 0)))
+            ), Vector3::new(2.6, 0.05, 2),
             Collision::Outside, Visibility::Visible, Lighting::Diffuse
         )),
         
@@ -80,8 +84,14 @@ fn main() {
     ]);
     
     lights := #[
-        $$(Vector3::new(0, 0, 0), Vector3::new(1, 1, 1), 0.2),
-        $$(Vector3::new(0, 3, 0), Vector3::new(0.8, 0.7, 0.8), 1)
+        Light {
+            type = LightType::Point,
+            enabled = true,
+            position = Vector3::new(0, Config::Height - 0.8, 0),
+            target = Vector3::zero(),
+            color = Vector3::new(1, 1, 1),
+            intensity = 5
+        }
     ];
 
     for entity in entities.values() {
@@ -92,7 +102,7 @@ fn main() {
 
     debug := $map(#[
         $("vignette", true),
-        $("fog", true),
+        $("fog", false),
         $("shadows", true),
         $("lights", true),
         $("scan_line", false),
@@ -139,7 +149,6 @@ fn main() {
         camera.up = Vector3::new(0, 1, 0); // keeps camera upright
         lighting.set_value("viewPos", &camera.position);
         lighting.set_value("lightCount", &#cast(i32, lights.len()));
-        //lights[0] = $$(camera.position.clone(), Vector3::new(1,1,1), 1.0);
         shaders["scan_line"].set_value("time", &#cast(f32, time));
         
         for i := 0; i < animations.len(); i += 1 {
@@ -147,9 +156,11 @@ fn main() {
         }
         
         for i := 0; i < lights.len(); i += 1 {
-            lighting.set_value("lights[{}].position".format(i), &lights[i].x);
-            lighting.set_value("lights[{}].color".format(i), &lights[i].y);
-            lighting.set_value("lights[{}].strength".format(i), &lights[i].z);
+            lighting.set_value("lights[{}].type".format(i), &(+lights[i].type));
+            lighting.set_value("lights[{}].position".format(i), &lights[i].position);
+            lighting.set_value("lights[{}].target".format(i), &lights[i].target);
+            lighting.set_value("lights[{}].color".format(i), &lights[i].color);
+            lighting.set_value("lights[{}].strength".format(i), &lights[i].intensity);
         }
 
         if camera.position.sub(pos).length() > 0.001 {
@@ -223,8 +234,8 @@ fn main() {
                 for entity in entities.values() {
                     if entity.visibility != Visibility::Visible { continue; }
 
-                    x, y, z := entity.position;
-                    lighting.set_value("model", &Matrix::translate(x, y, z));
+                    //x, y, z := entity.position;
+                    //lighting.set_value("model", &Matrix::translate(x, y, z).multiply(entity.model.transform));
                     lighting.set_value("specularFactor", &entity.lighting);
                     
                     rl::draw_model(entity.model, entity.position, 1, WHITE);
@@ -267,7 +278,7 @@ fn main() {
             );
 
             if debug["debug"] {
-                rl::draw_text("{}\n\n{}\n\n{}".format(debug, camera), 20, 60, 20, WHITE);
+                rl::draw_text("{}\n\n{}".format(debug, camera), 20, 60, 20, WHITE);
             }
 
             rl::draw_fps(20, 20);

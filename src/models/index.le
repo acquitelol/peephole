@@ -1,5 +1,4 @@
 use ../lib/bindings;
-use baseboard;
 use room;
 
 global pub;

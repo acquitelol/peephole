@@ -7,31 +7,32 @@ in vec3 vertexNormal;
 in vec4 vertexColor;
 
 uniform mat4 mvp;
-uniform mat4 model;
+uniform mat4 matModel;
 
 out vec2 fragTexCoord;
 out vec4 fragColor;
 out vec3 fragNormal;
 out vec3 fragPos;
 out mat4 fragModel;
-// out mat3 TBN;
+out mat3 TBN;
 
 void main() {
     fragTexCoord = vertexTexCoord;
     fragColor = vertexColor;
-    vec4 worldPos = model * vec4(vertexPosition, 1.0);
+    vec4 worldPos = matModel * vec4(vertexPosition, 1.0);
     fragPos = worldPos.xyz;
-    fragModel = model;
+    fragModel = matModel;
 
-    mat3 normalMatrix = transpose(inverse(mat3(model)));
-    fragNormal = normalize(normalMatrix * vertexNormal);
+    mat3 normalMatrix = transpose(inverse(mat3(matModel)));
+    // fragNormal = normalize(normalMatrix * vertexNormal);
 
-    // vec3 N = normalize(normalMatrix * vertexNormal);
-    // vec3 T = normalize(normalMatrix * vertexTangent);
-    // vec3 B = cross(N, T);
+    vec3 N = normalize(normalMatrix * vertexNormal);
+    vec3 T = normalize(normalMatrix * vertexTangent);
+    T = normalize(T - dot(T, N) * N);
+    vec3 B = cross(N, T);
 
-    // TBN = mat3(T, B, N);
-    // fragNormal = N;
+    TBN = mat3(T, B, N);
+    fragNormal = N;
 
     gl_Position = mvp * vec4(vertexPosition, 1.0);
 }

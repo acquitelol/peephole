@@ -1,0 +1,18 @@
+use std/prelude;
+use std/raylib;
+global pub;
+
+enum LightType {
+    Directional,
+    Point,
+    Spot
+}
+
+struct Light {
+    LightType type,
+    bool enabled,
+    Vector3 position,
+    Vector3 target,
+    Vector3 color,
+    f32 intensity
+}
