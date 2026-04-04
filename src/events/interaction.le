@@ -1,0 +1,34 @@
+use std/prelude;
+use std/raylib;
+
+use ../animation/index;
+use ../lib/index;
+
+global pub;
+
+let tooltipBrightness = 0.0;
+let tooltipActive = false;
+
+namespace Interaction;
+
+fn Interaction::start_interaction() {
+    Animation::new(&tooltipBrightness, tooltipBrightness, 255, 0.5, Easing::inOut);
+    tooltipActive = true;
+}
+
+fn Interaction::stop_interaction() {
+    Animation::new(&tooltipBrightness, tooltipBrightness, 0, 0.5, Easing::inOut);
+    tooltipActive = false;
+}
+
+fn Interaction::is_active() {
+    return tooltipActive;
+}
+
+fn Interaction::pre_draw() {}
+fn Interaction::draw() {
+    rl::draw_text_centered(
+        "Press [E] to interact", rl::get_render_height() - 150, 20,
+        Color { ..WHITE, a = tooltipBrightness }
+    );
+}

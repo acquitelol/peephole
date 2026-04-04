@@ -5,9 +5,9 @@ out vec4 finalColor;
 
 uniform sampler2D texture0;
 uniform bool enabled;
-float strength = 0.6;
-float radius = 0.9;
-float softness = 0.9;
+float strength = 0.5;
+float radius = 1.2;
+float softness = 1;
 
 void main() {
     vec4 color = texture(texture0, fragTexCoord);

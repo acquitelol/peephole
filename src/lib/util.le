@@ -11,6 +11,12 @@ enum Config {
     Length = 8
 }
 
+struct Triangle {
+    Vector3 v0,
+    Vector3 v1,
+    Vector3 v2,
+}
+
 let PLAYER_RADIUS = 0.5;
 let EYE_HEIGHT = 1.8;
 
@@ -70,20 +76,25 @@ fn lerp(f32 a, f32 b, f32 t) {
 }
 
 fn rl::load_shadowmap_render_texture(i32 width, i32 height) {
-    target := RenderTexture2D {};
-
-    target.id = rlLoadFramebuffer();
-    target.texture.width = width;
-    target.texture.height = height;
+    target := RenderTexture2D {
+        id = rlLoadFramebuffer(),
+        texture = Texture { 
+            id = 0,
+            width, 
+            height,
+            format = 0,
+            mipmaps = 0
+        },
+        depth = Texture {
+            id = rlLoadTextureDepth(width, height, false),
+            width,
+            height,
+            format = 19,
+            mipmaps = 1
+        }
+    };
 
     rlEnableFramebuffer(target.id);
-
-    target.depth.id = rlLoadTextureDepth(width, height, false);
-    target.depth.width = width;
-    target.depth.height = height;
-    target.depth.format = 19; // DEPTH_COMPONENT_24BIT?
-    target.depth.mipmaps = 1;
-
     rlFramebufferAttach(target.id, target.depth.id, RL::ATTACHMENT_DEPTH, RL::ATTACHMENT_TEXTURE2D, 0);
     rlDisableFramebuffer();
 

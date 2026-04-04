@@ -19,21 +19,24 @@ enum Lighting {
 }
 
 struct Entity {
-    Model model,
+    Model *model,
     Vector3 position,
     Collision collision,
     Visibility visibility,
     Lighting lighting,
     BoundingBox bounds,
+    f32 metallic,
+    f32 roughness,
+    f32 ao
 }
 
-fn Entity::new(Model model, Vector3 position, Collision collision, Visibility visibility, Lighting lighting) {
-    bounds := rl::get_model_bounding_box(model);
+fn Entity::new(Model *model, Vector3 position, Collision collision, Visibility visibility, Lighting lighting, f32 metallic, f32 roughness, f32 ao) {
+    bounds := rl::get_model_bounding_box(*model);
     if (bounds.min.x > bounds.max.x) { t := bounds.min.x; bounds.min.x = bounds.max.x; bounds.max.x = t; }
     if (bounds.min.y > bounds.max.y) { t := bounds.min.y; bounds.min.y = bounds.max.y; bounds.max.y = t; }
     if (bounds.min.z > bounds.max.z) { t := bounds.min.z; bounds.min.z = bounds.max.z; bounds.max.z = t; }
     bounds.min = bounds.min.add(position);
     bounds.max = bounds.max.add(position);
 
-    return Entity { model, position, collision, visibility, lighting, bounds };
+    return Entity { model, position, collision, visibility, lighting, bounds, metallic, roughness, ao };
 }

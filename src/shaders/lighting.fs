@@ -12,11 +12,8 @@ uniform sampler2D texture2;
 uniform sampler2D mraMap;
 
 uniform vec3 viewPos;
-
-uniform bool shadows;
-uniform bool fog;
-uniform bool lightsEnabled;
 uniform bool useTexMRA;
+uniform bool fog;
 
 #define MATERIAL_DIFFUSE 0
 #define MATERIAL_REFLECTIVE 1
@@ -40,37 +37,33 @@ struct Light {
     sampler2D shadowMap;
 };
 
+uniform float lightIntensity;
 uniform int lightCount;
+uniform bool lightEnabled;
 uniform Light lights[MAX_LIGHTS];
 
-float fogStart = 2;
-float fogEnd = 10;
-
-float shadowStart = 8;
-float shadowEnd = 16;
+float shadowStart = 4;
+float shadowEnd = 8;
 
 float lightRange = 100;
 float lightFactor = 0.5;
 
-float metallicValue = 0.5;
-float roughnessValue = 0.5;
-float aoValue = 0.5;
+uniform float metallicValue;
+uniform float roughnessValue;
+uniform float aoValue;
 
-vec3 SchlickFresnel(float hDotV, vec3 refl)
-{
+vec3 SchlickFresnel(float hDotV, vec3 refl) {
     return refl + (1.0 - refl) * pow(1.0 - hDotV, 5.0);
 }
 
-float GgxDistribution(float nDotH, float roughness)
-{
+float GgxDistribution(float nDotH, float roughness) {
     float a = roughness * roughness * roughness * roughness;
     float d = nDotH * nDotH * (a - 1.0) + 1.0;
     d = PI * d * d;
     return a / max(d, 0.0000001);
 }
 
-float GeomSmith(float nDotV, float nDotL, float roughness)
-{
+float GeomSmith(float nDotV, float nDotL, float roughness) {
     float r = roughness + 1.0;
     float k = r * r / 8.0;
     float ik = 1.0 - k;
@@ -87,7 +80,7 @@ float GeometricRoughness(vec3 normal) {
 }
 
 void main() {
-    vec3 albedo = texture(texture0, fragTexCoord).rgb;
+    vec3 albedo = pow(texture(texture0, fragTexCoord).rgb, vec3(2.2));
 
     float metallic = clamp(metallicValue, 0.0, 1.0);
     float roughness = clamp(roughnessValue, 0.0, 1.0);
@@ -134,7 +127,9 @@ void main() {
             L = -lights[i].dir;
         } else {
             L = normalize(lights[i].position - fragPos);
-            attenuation -= smoothstep(0.0, 1.0, dist / lightRange);
+            // attenuation = 1 / (dist * dist);
+            attenuation = 1.0 / (1.0 + dist * dist * 0.1);
+            // attenuation *= pow(clamp(1.0 - dist, 0.0, 1.0), 2.0);
         }
 
         vec4 fragPosLightSpace = lights[i].mat * vec4(fragPos, 1.0);
@@ -148,21 +143,25 @@ void main() {
         // return;
 
         float shadow = 0.0;
-        float bias = max(0.0002 * (1.0 - dot(normal, L)), 0.00002) + 0.00001;
+        float bias = max(0.005 * (1.0 - dot(normal, L)), 0.0005);
         // if (currentDepth - bias > closestDepth) shadow = 1.0;
-        int samples = 128;
-        for (int x = -5; x <= 5; x++)
-            for (int y = -5; y <= 5; y++) {
-                vec2 offset = vec2(x, y) * 1.0 / 1024.0;
-                float closestDepth = texture(lights[i].shadowMap, fragPosLightSpace.xy + offset).r;
-                shadow += (currentDepth - bias > closestDepth) ? 1.0 : 0.0;
+
+        vec2 texelSize = 1.0 / textureSize(lights[i].shadowMap, 0);
+
+        for (int x = -1; x <= 1; ++x) {
+            for (int y = -1; y <= 1; ++y) {
+                float pcfDepth = texture(lights[i].shadowMap, fragPosLightSpace.xy + vec2(x, y) * texelSize).r;
+                shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
             }
-        shadow /= 121.0; // average
+        }
+
+        shadow /= 9.0;
+        shadow = smoothstep(0.0, 1.0, shadow);
         // finalColor = vec4(shadow, 0, 0, 1);
         // return;
 
         vec3 H = normalize(V + L);
-        vec3 radiance = lights[i].color * lights[i].strength * attenuation;
+        vec3 radiance = lights[i].color * lights[i].strength * attenuation * lightIntensity;
         // finalColor = lights[i].color;
         float nDotV = max(dot(normal, V), 0.0000001);
         float nDotL = max(dot(normal, L), 0.0000001);
@@ -181,19 +180,16 @@ void main() {
         lightAccum += (kD * albedo / PI + spec) * radiance * nDotL * (1.0 - shadow);
     }
 
+    // vec3 hemiLight = mix(vec3(0.2, 0.2, 0.25), vec3(0.8, 0.8, 0.85), normal.y);
     vec3 ambientFinal = albedo * ao * 0.5;
-    vec3 pbrColor = lightAccum + ambientFinal;
-    vec3 color = lightsEnabled ? pbrColor : albedo;
+    vec3 color = lightEnabled ? lightAccum + ambientFinal * lightIntensity : albedo;
 
     float viewDistance = length(fragPos - viewPos);
-    float fogFactor = smoothstep(fogStart, fogEnd, viewDistance);
-    float shadowFactor = smoothstep(shadowStart, shadowEnd, length(fragPos));
+    float fogFactor = 1.0 - exp(-viewDistance * viewDistance * 0.2);
 
     vec3 atmosphereColor = vec3(0);
-
-    vec3 shadowedColor = mix(color, atmosphereColor, shadows ? shadowFactor : 0.0);
-    vec3 foggedColor = mix(shadowedColor, atmosphereColor, fog ? fogFactor : 0.0);
+    vec3 foggedColor = mix(color, atmosphereColor, fog ? fogFactor : 0.0);
 
     finalColor = vec4(foggedColor, 1.0);
-    finalColor = pow(finalColor, vec4(1.0 / 2.2));
+    finalColor = vec4(pow(finalColor.rgb, vec3(1.0 / 2.2)), finalColor.a);
 }

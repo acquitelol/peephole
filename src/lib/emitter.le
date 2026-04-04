@@ -1,0 +1,48 @@
+use std/prelude;
+global pub;
+
+struct EventClosure @nofmt {
+    // Arg     Payload
+    fn(void *, void *) event,
+    void *arg
+}
+
+struct EventEmitter @nofmt {
+    HashMap<string, EventClosure[]> *listeners
+}
+
+fn EventEmitter::new() {
+    return EventEmitter { listeners = HashMap::new() };
+}
+
+fn EventEmitter::on_with<Arg>(EventEmitter *self, string name, fn(Arg *, void *) event, Arg arg) {
+    self.listeners.get_or_insert(name, []EventClosure).push(EventClosure {
+        event, arg = Box::new(arg).to_ptr()
+    });
+    
+    return event;
+}
+
+fn EventEmitter::on(EventEmitter *self, string name, fn(void *) event) {
+    return self.on_with(name, fn(arg, payload) { (arg := *arg) && arg(payload); }, event);
+}
+
+fn EventEmitter::off(EventEmitter *self, string event, fn(void *, void *) cb) {
+    if !self.listeners.contains_key(event) { return; }
+    position := self.listeners[event].iter().position_with(fn(x, cb) x.event == cb, cb);
+
+    if _, position := position {
+        self.listeners[event].remove(position);
+    }
+}
+
+fn EventEmitter::emit(EventEmitter *self, string event, void *payload) {
+    if !self.listeners.contains_key(event) { return; }
+
+    for cb in self.listeners[event] {
+        f := cb.event;
+        f(cb.arg, payload);
+    }
+}
+
+let events = EventEmitter::new();

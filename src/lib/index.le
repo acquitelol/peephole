@@ -1,5 +1,6 @@
 use bindings;
 use lighting;
+use emitter;
 use entity;
 use shader;
 use util;

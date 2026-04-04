@@ -2,6 +2,7 @@ use std/prelude;
 use std/raylib;
 
 use lib/index;
+use events/index;
 use models/index;
 use animation/index;
 
@@ -27,8 +28,8 @@ fn main() {
     back := texture_gen();
 
     shaders := $map(#[
-        $("scan_line", &rl::load_shader(nil, "src/shaders/scan_line.fs")),
-        $("pixelate", &rl::load_shader(nil, "src/shaders/pixelate.fs")),
+        //$("scan_line", &rl::load_shader(nil, "src/shaders/scan_line.fs")),
+        //$("pixelate", &rl::load_shader(nil, "src/shaders/pixelate.fs")),
         $("vignette", &rl::load_shader(nil, "src/shaders/vignette.fs")),
         $("crosshair", &rl::load_shader(nil, "src/shaders/crosshair.fs"))
     ]);
@@ -46,41 +47,64 @@ fn main() {
     
     entities := $map(#[
         $("room", Entity::new(
-            gen_room(), Vector3::new(0, Config::Height / 2, 0),
+            &gen_room(), Vector3::new(0, Config::Height / 2, 0),
             Collision::Inside, Visibility::Visible, Lighting::Diffuse,
+            0.2, 0.2, 0.5
         )),
 
-        $("door", Entity::new(
-            rl::load_transformed_model(
-                "assets/door4.glb",
+        $("door_frame", Entity::new(
+            &rl::load_transformed_model(
+                "assets/indoor_door_frame.glb",
                 Matrix::scale(1.25, 1.25, 1.25)
-                    .multiply(Matrix::rotateXYZ(Vector3::new(0, -PI, 0)))),
-            Vector3::new(0, 0.02, -Config::Length / 2),
+                    .multiply(Matrix::rotateXYZ(Vector3::new(0, -PI / 2, 0)))),
+            Vector3::new(Config::Width / 2, 0.02, 2.5),
             Collision::Outside, Visibility::Visible, Lighting::Diffuse,
+            0.2, 0.8, 0.3
+        )),
+        
+        $("door_base", Entity::new(
+            door_base := &rl::load_model("assets/indoor_door_base.glb"),
+            Vector3::new(Config::Width / 2, 0.02, 2.5),
+            Collision::Outside, Visibility::Visible, Lighting::Diffuse,
+            0.2, 0.8, 0.3
         )),
         
         $("bed", Entity::new(
-            rl::load_transformed_model(
+            &rl::load_transformed_model(
                 "assets/bed4.glb", 
                 Matrix::scale(2, 1.5, 1.5)
                     .multiply(Matrix::rotateXYZ(Vector3::new(0, -PI, 0)))
-            ), Vector3::new(2.6, 0.05, 2),
-            Collision::Outside, Visibility::Visible, Lighting::Diffuse
+            ), Vector3::new(-2.6, 0.05, 2),
+            Collision::Outside, Visibility::Visible, Lighting::Diffuse,
+            0.6, 0.3, 0.3
         )),
         
         $("bedside_table", Entity::new(
-            rl::load_transformed_model(
+            &rl::load_transformed_model(
                 "assets/bedside_table.glb",
                 Matrix::scale(0.5, 0.5, 0.5)
                     .multiply(Matrix::rotateXYZ(Vector3::new(0, -PI, 0)))
-            ), Vector3::new(0.9, 0.05, 3.3),
-            Collision::Outside, Visibility::Visible, Lighting::Diffuse
+            ), Vector3::new(-0.9, 0.05, 3.3),
+            Collision::Outside, Visibility::Visible, Lighting::Diffuse,
+            0.6, 0.3, 0.3
         )),
 
-        $("light_switch", Entity::new(
-            rl::load_model_from_mesh(rl::gen_mesh_sphere(0.05, 16, 16)),
-            Vector3::new(1, 2, -Config::Length / 2 + 0.04),
-            Collision::None, Visibility::None, Lighting::Diffuse,
+        $("light_switch_base", Entity::new(
+            &rl::load_transformed_model(
+                "assets/light_switch_base.glb",
+                Matrix::scale(2, 2, 2)
+            ), Vector3::new(1.2, EYE_HEIGHT, -Config::Length / 2),
+            Collision::None, Visibility::Visible, Lighting::Diffuse,
+            0.2, 0.2, 0.5
+        )),
+        
+        $("light_switch_switch", Entity::new(
+            light_switch_switch := &rl::load_transformed_model(
+                "assets/light_switch_switch.glb",
+                Matrix::scale(2, 2, 2)
+            ), Vector3::new(1.2, EYE_HEIGHT, -Config::Length / 2),
+            Collision::None, Visibility::Visible, Lighting::Diffuse,
+            0.2, 0.2, 0.5
         ))
     ]);
     
@@ -91,12 +115,63 @@ fn main() {
             dir = Vector3::new(0.35, -1, -0.35).normalize(),
             position = Vector3::new(0, Config::Height - 0.8, 0),
             target = Vector3::zero(),
-            color = Vector3::new(0.8, 0.7, 0.8),
+            color = Vector3::new(1, 0.77, 0.63),
             intensity = 3,
-            depthMap = rl::load_shadowmap_render_texture(1024, 1024),
+            depthMap = rl::load_shadowmap_render_texture(2048, 2048),
+            mat = Matrix::identity()
+        },
+        Light {
+            type = LightType::Point,
+            enabled = true,
+            dir = Vector3::new(0.35, -1, -0.35).normalize(),
+            position = Vector3::new(Config::Width, Config::Height, Config::Length),
+            target = Vector3::zero(),
+            color = Vector3::new(1, 0.77, 0.63),
+            intensity = 1,
+            depthMap = rl::load_shadowmap_render_texture(2048, 2048),
+            mat = Matrix::identity()
+        },
+        Light {
+            type = LightType::Point,
+            enabled = true,
+            dir = Vector3::new(0.35, -1, -0.35).normalize(),
+            position = Vector3::new(-Config::Width, Config::Height, Config::Length),
+            target = Vector3::zero(),
+            color = Vector3::new(1, 0.77, 0.63),
+            intensity = 1,
+            depthMap = rl::load_shadowmap_render_texture(2048, 2048),
+            mat = Matrix::identity()
+        },
+        Light {
+            type = LightType::Point,
+            enabled = true,
+            dir = Vector3::new(0.35, -1, -0.35).normalize(),
+            position = Vector3::new(Config::Width, Config::Height, -Config::Length),
+            target = Vector3::zero(),
+            color = Vector3::new(1, 0.77, 0.63),
+            intensity = 1,
+            depthMap = rl::load_shadowmap_render_texture(2048, 2048),
+            mat = Matrix::identity()
+        },
+        Light {
+            type = LightType::Point,
+            enabled = true,
+            dir = Vector3::new(0.35, -1, -0.35).normalize(),
+            position = Vector3::new(-Config::Width, Config::Height, -Config::Length),
+            target = Vector3::zero(),
+            color = Vector3::new(1, 0.77, 0.63),
+            intensity = 1,
+            depthMap = rl::load_shadowmap_render_texture(2048, 2048),
             mat = Matrix::identity()
         }
     ];
+    
+    sounds := $map(#[
+        $("light_on", rl::load_sound("assets/light_on.mp3")),
+        $("light_off", rl::load_sound("assets/light_off.mp3")),
+        $("door_open", rl::load_sound("assets/door_open.mp3")),
+        $("door_close", rl::load_sound("assets/door_close.mp3")),
+    ]);
 
     for entity in entities.values() {
         for i := 0; i < entity.model.materialCount; i += 1 {
@@ -105,39 +180,33 @@ fn main() {
     }
 
     debug := $map(#[
-        $("vignette", true),
-        $("fog", false),
-        $("shadows", true),
-        $("lights", true),
-        $("scan_line", false),
-        $("pixelate", false),
         $("collisions", true),
         $("free", false),
-        $("debug", false)
+        $("debug", false),
+        $("vignette", true),
+        $("lights", true)
     ]);
+    
+    switchRotation    := 0.0;
+    doorRotation      := 0.0;
+    doorOpen          := false;
+    lightIntensity    := 0.1;
+    gameBrightness    := 0.0;
 
-    //state := $map<string, bool>(#[]);
+    Animation::new_delayed(&gameBrightness, 0, 255, 2, 3, Easing::inOut);
 
     shaders["vignette"].set_value("enabled", &debug["vignette"]);
     shaders["crosshair"].set_value("aspect", &(#cast(f32, rl::get_render_width()) / rl::get_render_height()));
 
-    shaders["pixelate"].set_value("px", &(16.0 / rl::get_render_width()));
-    shaders["pixelate"].set_value("py", &(16.0 / rl::get_render_height()));
-    shaders["pixelate"].set_value("enabled", &debug["pixelate"]);
-
-    shaders["scan_line"].set_value("enabled", &debug["scan_line"]);
-    shaders["scan_line"].set_value("intensity", &0.04);
-    shaders["scan_line"].set_value("thickness", &0.02);
-
     lighting.set_value("lightCount", &#cast(i32, lights.len()));
-    lighting.set_value("lightsEnabled", &debug["lights"]);
-    lighting.set_value("shadows", &debug["shadows"]);
-    lighting.set_value("fog", &debug["fog"]);
+    lighting.set_value("lightIntensity", &lightIntensity);
+    lighting.set_value("lightEnabled", &debug["lights"]);
+    lighting.set_value("shadows", &true);
+    lighting.set_value("fog", &true);
     swayAmplitude := 0.12;
     swayFrequency := 8.0;
     
-    brightness := 0.0;
-    Animation::new_delayed(&brightness, 0, 255, 2, 3, Easing::inOut);
+    Events::bind();
     
     while !rl::window_should_close() {
         rl::update_music_stream(footsteps);
@@ -152,19 +221,20 @@ fn main() {
 
         camera.up = Vector3::new(0, 1, 0); // keeps camera upright
         lighting.set_value("viewPos", &camera.position);
-        lighting.set_value("lightCount", &#cast(i32, lights.len()));
-        //lights[0].dir = camera.position.clone();
-        shaders["scan_line"].set_value("time", &#cast(f32, time));
+
+        light_switch_switch.transform = Matrix::rotateXYZ(Vector3::new(switchRotation, 0, 0))
+            .multiply(Matrix::translate(0, 0.06 * (1.0 - math::cosf(switchRotation)), -math::sinf(switchRotation) * 0.07))
+            .multiply(Matrix::scale(2, 2, 2));
+        
+        door_base.transform = Matrix::rotateXYZ(Vector3::new(0, -PI / 2, 0))
+            .multiply(Matrix::translate(0, 0, -0.5))
+            .multiply(Matrix::rotateXYZ(Vector3::new(0, doorRotation, 0)))
+            .multiply(Matrix::translate(0, 0, 0.5))
+            .multiply(Matrix::scale(1.25, 1.25, 1.25));
         
         for i := 0; i < animations.len(); i += 1 {
             (&animations[i]).update(dt);
         }
-        
-        //for entity in entities.values() {
-        //    for i := 0; i < entity.model.materialCount; i += 1 {
-        //        entity.model.materials[i].shader = depth_shader;
-        //    }
-        //}
         
         for i := 0; i < lights.len(); i += 1 {
             light_cam := Camera3D {
@@ -210,27 +280,26 @@ fn main() {
                 &(5 + i), ShaderUniformDataType::SHADER_UNIFORM_INT, 1
             );
         }
-        
-        //for entity in entities.values() {
-        //    for i := 0; i < entity.model.materialCount; i += 1 {
-        //        entity.model.materials[i].shader = lighting;
-        //    }
-        //}
 
         if camera.position.sub(pos).length() > 0.001 {
-            base := camera.position.clone();
-            sway := Vector3::new(
-                math::sinf(time * swayFrequency) * swayAmplitude,
-                math::cosf(time * swayFrequency * 2.0) * swayAmplitude,
-                0,
-            );
-
-            camera.position.x = lerp(camera.position.x, base.x + sway.x, 0.1);
-            camera.position.y = lerp(camera.position.y, base.y + sway.y, 0.1);
+            swayAmplitude = 0.12;
+            swayFrequency = 8;
             rl::resume_music_stream(footsteps);
         } else {
+            swayAmplitude = 0.002;
+            swayFrequency = 0.1;
             rl::pause_music_stream(footsteps);
         }
+        
+        base := camera.position.clone();
+        sway := Vector3::new(
+            math::sinf(time * swayFrequency) * swayAmplitude,
+            math::cosf(time * swayFrequency * 2.0) * swayAmplitude,
+            0,
+        );
+
+        camera.position.x = lerp(camera.position.x, base.x + sway.x, 0.1);
+        camera.position.y = lerp(camera.position.y, base.y + sway.y, 0.1);
 
         if debug["collisions"] {
             for entity in entities.values() {
@@ -251,35 +320,58 @@ fn main() {
         if rl::is_key_pressed(KeyboardKey::KEY_R) { debug["collisions"] = !debug["collisions"]; }
         if rl::is_key_pressed(KeyboardKey::KEY_P) { debug["debug"] = !debug["debug"]; }
         if rl::is_key_pressed(KeyboardKey::KEY_F) { debug["free"] = !debug["free"]; }
+        if rl::is_key_pressed(KeyboardKey::KEY_L) { 
+            debug["lights"] = !debug["lights"];
+            lighting.set_value("lightEnabled", &#cast(i32, debug["lights"]));
+        }
 
         if rl::is_key_pressed(KeyboardKey::KEY_V) {
             debug["vignette"] = !debug["vignette"];
             shaders["vignette"].set_value("enabled", &debug["vignette"]);
         }
+        
+        Events::pre_draw();
+        
+        viewDir := camera.target.sub(camera.position).normalize();
+        switchDir := entities["light_switch_base"].position.sub(camera.position); 
+        doorDir := entities["door_base"].position.sub(camera.position);
+        ray := rl::get_mouse_ray(
+            Vector2::new(
+                rl::get_screen_width() * 0.5,
+                rl::get_screen_height() * 0.5
+            ),
+            *#cast(Camera *, &camera)
+        );
+        doorCast := rl::get_ray_collision_box(ray, entities["door_base"].bounds);
 
-        if rl::is_key_pressed(KeyboardKey::KEY_B) {
-            debug["fog"] = !debug["fog"];
-            lighting.set_value("fog", &debug["fog"]);
-        }
-
-        if rl::is_key_pressed(KeyboardKey::KEY_N) {
-            debug["shadows"] = !debug["shadows"];
-            lighting.set_value("shadows", &debug["shadows"]);
-        }
-
-        if rl::is_key_pressed(KeyboardKey::KEY_L) {
-            debug["lights"] = !debug["lights"];
-            lighting.set_value("lightsEnabled", &debug["lights"]);
-        }
-
-        if rl::is_key_pressed(KeyboardKey::KEY_M) {
-            debug["pixelate"] = !debug["pixelate"];
-            shaders["pixelate"].set_value("enabled", &debug["pixelate"]);
-        }
-
-        if rl::is_key_pressed(KeyboardKey::KEY_K) {
-            debug["scan_line"] = !debug["scan_line"];
-            shaders["scan_line"].set_value("enabled", &debug["scan_line"]);
+        switchHit := switchDir.length_sq() < 4.0 && viewDir.dot(switchDir.normalize()) > 0.98;
+        doorHit := doorCast.hit && doorCast.distance < 4;
+        
+        //$dbg(entities["door_base"].position.sub(camera.position).length_sq(), viewDir.dot(doorDir.normalize()));
+        
+        if switchHit || doorHit {
+            if !Interaction::is_active() {
+                events.emit("startInteraction", nil);
+            }
+            
+            if rl::is_key_pressed(KeyboardKey::KEY_E) {
+                if switchHit {
+                    lightsDisabled := math::fabsf(lightIntensity - 1) < 1.0e-6;
+                    lightIntensity = lightsDisabled ? 0.1 : 1;
+                    lighting.set_value("lightIntensity", &lightIntensity);
+                    lighting.set_value("fog", &#cast(i32, lightsDisabled));
+                    Animation::new(&switchRotation, switchRotation, lightsDisabled ? 0 : 1, 0.2, Easing::inOut);
+                    rl::play_sound(sounds[lightsDisabled ? "light_on" : "light_off"]);
+                } 
+                
+                if doorHit {
+                    doorOpen = !doorOpen;
+                    Animation::new(&doorRotation, doorRotation, doorOpen ? -PI / 2 : 0, 1, Easing::softBackOut);
+                    rl::play_sound(sounds[doorOpen ? "door_open" : "door_close"]);
+                }
+            }
+        } else if Interaction::is_active() {
+            events.emit("stopInteraction", nil);
         }
 
         rl::begin_texture_mode(front);
@@ -288,10 +380,9 @@ fn main() {
             rl::begin_mode_3d(camera);
                 for entity in entities.values() {
                     if entity.visibility != Visibility::Visible { continue; }
-
-                    //x, y, z := entity.position;
-                    //lighting.set_value("model", &Matrix::translate(x, y, z).multiply(entity.model.transform));
-                    lighting.set_value("specularFactor", &entity.lighting);
+                    lighting.set_value("metallicValue", &entity.metallic);
+                    lighting.set_value("roughnessValue", &entity.roughness);
+                    lighting.set_value("aoValue", &entity.ao);
                     
                     rl::draw_model(entity.model, entity.position, 1, WHITE);
                 }
@@ -332,7 +423,6 @@ fn main() {
             //    Color { ..WHITE, a = brightness }
             //);
             
-            
             rl::draw_texture_rec(
                 front.texture,
                 Rectangle {
@@ -341,11 +431,19 @@ fn main() {
                     height = -front.texture.height
                 },
                 Vector2::zero(),
-                Color { ..WHITE, a = brightness }
+                Color { ..WHITE, a = gameBrightness }
             );
-
+            
+            Events::draw();
+            
             if debug["debug"] {
-                rl::draw_text("{}\n\n{}".format(debug, camera), 20, 60, 20, WHITE);
+                rl::draw_text("{}\n\n{}".format(
+                    debug, camera,
+                    //entities["door_base"].position,
+                    //entities["door_base"].position.sub(camera.position),
+                    //entities["door_base"].position.sub(camera.position).length_sq(),
+                    //viewDir.dot(doorDir.normalize())
+                ), 20, 60, 20, WHITE);
             }
 
             rl::draw_fps(20, 20);

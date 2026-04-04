@@ -1,0 +1,20 @@
+use std/prelude;
+use std/raylib;
+
+use interaction;
+global pub;
+
+namespace Events;
+
+fn Events::bind() {
+    events.on("startInteraction", Interaction::start_interaction);
+    events.on("stopInteraction", Interaction::stop_interaction);
+}
+
+fn Events::pre_draw() {
+    Interaction::pre_draw();
+}
+
+fn Events::draw() {
+    Interaction::draw();
+}

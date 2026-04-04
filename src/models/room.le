@@ -5,14 +5,15 @@ use ../lib/util;
 global pub;
 
 fn gen_room() {
-	model := rl::load_model("assets/cube3.glb");
-    scale_model_uv(&model, #[#[10, 18], #[16, 16], #[8, 8]]);
+	model := rl::load_model("assets/room1.glb");
+	model.transform = Matrix::rotateXYZ(Vector3::new(PI, 0, 0));
+    scale_model_uv(&model, #[#[10, 18], #[16, 16], #[2, 2]]);
 
-    textures := #["Wallpaper4", "Plaster3-2K", "Planks"];
+    textures := #["Plaster3-2K", "Wallpaper4", "Planks"];
 
-    for i := 1; i < model.materialCount; i += 1 {
+    for i := 0; i < model.materialCount; i += 1 {
         mat := &model.materials[i];
-        asset := textures[i - 1];
+        asset := textures[i];
 
         albedo := rl::load_texture("assets/{}/color.png".format(asset));
         normal := rl::load_texture("assets/{}/normal_gl.png".format(asset));
