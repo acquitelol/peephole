@@ -3,7 +3,7 @@ use std/raylib;
 
 use lib/index;
 use models/index;
-use animation/animation;
+use animation/index;
 
 fn main() {
     rl::init_window(0, 0, "dear lover, dear heart, glass heart");

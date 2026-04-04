@@ -8,3 +8,33 @@ fn Easing::inOut(f32 t) {
 fn Easing::linear(f32 t) {
     return t;
 }
+
+fn Easing::cubicOut(f32 t) {
+    t -= 1.0;
+    return t * t * t + 1.0;
+}
+
+fn Easing::cubicIn(f32 t) {
+    return t * t * t;
+}
+
+fn Easing::cubicInOut(f32 t) {
+    if t < 0.5 {
+        return 4.0 * t * t * t;
+    } else {
+        t = 2.0 * t - 2.0;
+        return 0.5 * t * t * t + 1.0;
+    }
+}
+
+fn Easing::backOut(f32 t) {
+    s := 1.70158;
+    t -= 1;
+    return t * t * ((s + 1) * t + s) + 1;
+}
+
+fn Easing::softBackOut(f32 t) {
+    s := 1.10158;
+    t -= 1;
+    return t * t * ((s + 1) * t + s) + 1;
+}
